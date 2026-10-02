@@ -72,7 +72,72 @@ def predict(request: SentimentRequest):
 
 
 
+import json
+import logging
+import time
+from datetime import datetime, timezone
 
+from fastapi import FastAPI, Request
+
+# --- Basic logging setup -----------------------------------------------------
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+)
+logger = logging.getLogger("ml_api")
+
+
+# --- Logging helpers ---------------------------------------------------------
+
+def log_prediction_event(
+    request_body: dict,
+    prediction: dict,
+    latency_ms: float,
+) -> None:
+    """
+    Log a single prediction event as structured JSON.
+
+    In a real production system, this would go to a log aggregator
+    (e.g., CloudWatch, Datadog, ELK) rather than stdout — but the
+    structured format is the same idea.
+    """
+    event = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "input": request_body,
+        "output": prediction,
+        "latency_ms": round(latency_ms, 2),
+    }
+    logger.info(json.dumps(event))
+
+
+# --- Middleware --------------------------------------------------------------
+
+def add_monitoring_middleware(app: FastAPI) -> FastAPI:
+    """
+    Attach a middleware that times every request and logs basic metrics.
+    """
+
+    @app.middleware("http")
+    async def monitor_requests(request: Request, call_next):
+        start = time.perf_counter()
+        response = await call_next(request)
+        latency_ms = (time.perf_counter() - start) * 1000
+
+        logger.info(
+            json.dumps(
+                {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "path": request.url.path,
+                    "method": request.method,
+                    "status_code": response.status_code,
+                    "latency_ms": round(latency_ms, 2),
+                }
+            )
+        )
+        return response
+
+    return app
 
 
 from fastapi.responses import HTMLResponse
