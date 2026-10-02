@@ -18,12 +18,12 @@ class SentimentRequest(BaseModel):
 class SentimentResponse(BaseModel):
     sentiment: str
     confidence: float | None = None
-
-@app.get("/")
+    
+@app.api_route("/", methods=["GET", "HEAD"])
 def root():
     return {"message": "Sentiment API is running. See /docs for usage."}
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health():
     return {"status": "ok", "model_loaded": pipeline is not None}
 
