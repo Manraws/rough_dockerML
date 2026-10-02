@@ -3,9 +3,23 @@ from pydantic import BaseModel, Field
 import joblib
 import os
 
+
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.pkl")
 
 app = FastAPI(title="Sentiment Analysis API")
+
+
+
+#enable cors
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or your specific frontend origin
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 try:
     pipeline = joblib.load(MODEL_PATH)
